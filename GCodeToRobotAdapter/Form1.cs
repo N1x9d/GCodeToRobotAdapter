@@ -31,7 +31,18 @@ namespace GCodeToRobotAdapter
                 OutFile = a + "1.gcode";
             } 
         }
-
+        public bool IsChecked { get =>  checkBox1.Checked; }
+        public float GetFeedKoef 
+        {
+            get 
+            {
+                if (checkBox1.Checked)
+                    return float.Parse(textBox6.Text);
+                else
+                    return 1;
+            }
+             
+        }
         public string OutFile { get => outFile; set { outFile = value; textBox2.Text = outFile; } }
 
         private void button1_Click(object sender, EventArgs e)
@@ -64,6 +75,18 @@ namespace GCodeToRobotAdapter
         private void textBox2_TextChanged(object sender, EventArgs e)
         {
             outFile = textBox2.Text;
+        }
+
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+            if (checkBox1.Checked)
+            {
+                textBox6.Enabled = true;
+            }
+            else
+            {
+                textBox6.Enabled = false;
+            }
         }
     }
 }

@@ -38,8 +38,9 @@ namespace GCodeToRobotAdapter
         private bool IsImport = false;
         private string conv;
         private coordinates _current, _previous;
-        private gcode_variable _gcode;
+        private gcode_variable _gcode,_prev;
         private List<LineType> lines;
+        private float PrevF = 0;
         public string Conv
         {
             get { return conv.ToString(myCIintl); }
@@ -161,6 +162,8 @@ namespace GCodeToRobotAdapter
         {
             string lin = line;
             string[] a = lin.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (_gcode.flags.Contains('e') && _gcode.command == "G" && _gcode.commandvalue == 1)
+                _prev = _gcode;
             _gcode.command = "";
             _gcode.flags = "";
             foreach (var com in a)
@@ -223,17 +226,27 @@ namespace GCodeToRobotAdapter
                 // Linear move
                 _previous = _current;
 
-               
+                if (_current.feedrate != 0)
+                    PrevF = _current.feedrate;
 
                 if (_gcode.flags.Contains("e"))
                 {
                     _current.e = _gcode.e;
                 }
+                float l = 0;
 
-                
-                
-                    if (_current.e - _previous.e > 0) _current.states = "P";
-                    else _current.states = "p";
+                if (_current.e > 0)
+                {
+                    l = (float)Math.Sqrt(Math.Pow(_current.x - _prev.x, 2) + Math.Pow(_current.y - _prev.y, 2) + Math.Pow(_current.z - _prev.z, 2));
+                }
+
+                if(_form.IsChecked)
+                    _current.e = l / (PrevF * 1000) * _form.GetFeedKoef;
+
+                if (_current.e - _previous.e > 0) 
+                    _current.states = "P";
+                else _current.states = "p";
+
                 if (_current.states.Contains("p") && _previous.states.Contains("P"))
                 {
                     lines.Add(ArcEnd);
@@ -246,10 +259,10 @@ namespace GCodeToRobotAdapter
 
                 LineType tipLine;
                 string[] ln = new string[1];
-                if (_gcode.flags.Contains("f"))
-                {
-                    line = line.Substring(0, line.LastIndexOf("F")) + "F500";
-                }
+                //if (_gcode.flags.Contains("f"))
+                //{
+                //    line = line.Substring(0, line.LastIndexOf("F")) + "F500";
+                //}
                 ln[0] = line;
                 tipLine.line = ln;
                 tipLine.tipe = "";
