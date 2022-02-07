@@ -37,7 +37,7 @@ namespace GCodeToRobotAdapter
             get 
             {
                 if (checkBox1.Checked)
-                    return float.Parse(textBox6.Text);
+                    return float.Parse(textBox6.Text, System.Globalization.CultureInfo.InvariantCulture);
                 else
                     return 1;
             }
