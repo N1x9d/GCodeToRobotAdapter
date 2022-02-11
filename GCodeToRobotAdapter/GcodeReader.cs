@@ -19,6 +19,7 @@ namespace GCodeToRobotAdapter
         private gcode_variable _gcode,_prev;
         private List<LineType> lines;
         private float PrevF = 0;
+
         public string Conv
         {
             get { return conv.ToString(myCIintl); }
@@ -140,11 +141,14 @@ namespace GCodeToRobotAdapter
         void gcode_process(string line)
         {
             string lin = line;
+            if (line == "")
+                return;
             string[] a = lin.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
             if (_gcode.flags!=null && _gcode.flags.Contains('e') && _gcode.command == "G" && _gcode.commandvalue == 1)
                 _prev = _gcode;
             _gcode.command = "";
             _gcode.flags = "";
+            _gcode.Nulification();
             foreach (var com in a)
             {
                 char element = com[0];
@@ -183,7 +187,18 @@ namespace GCodeToRobotAdapter
                         _gcode.flags += 'c';
                         break;
                     case 'F':
-                        _gcode.feedrate = 500;
+                        if (_gcode.flags.Contains("e"))
+                            if (_form.GetSpeed != 0)
+                                _gcode.feedrate = _form.GetSpeed;
+                            else
+                                _gcode.feedrate = (int)value;
+                        else
+                        {
+                            if (_form.GetHSpeed != 0)
+                                _gcode.feedrate = _form.GetHSpeed;
+                            else
+                                _gcode.feedrate = (int)value;
+                        }
                         _gcode.flags += 'f';
                         break;
                     case 'G':
@@ -206,14 +221,14 @@ namespace GCodeToRobotAdapter
                 //
                 float l = 0;
                 
-                if (_gcode.flags.Contains("e"))
-                {
+                
                     _previous = _current;
                     _current.e = _gcode.e;
-                    if (_current.e - _previous.e > 0)
+                    if (_current.e >0 )
                         _current.states = "P";
-                    else _current.states = "p";
-                    if (_current.states.Contains("p") && _previous.states.Contains("P"))
+                    else if(!_gcode.flags.Contains("e")||_gcode.commandvalue!=1) 
+                        _current.states = "p";
+                    if (_current.states.Contains("p") && _previous.states.Contains("P")  )
                     {
                         lines.Add(ArcEnd);
                     }
@@ -221,17 +236,19 @@ namespace GCodeToRobotAdapter
                     if (_current.states.Contains("P") && _previous.states.Contains("p"))
                     {
                         lines.Add(ArcStart);
+                    var ll = new LineType();
+                    var f = new string[1];
+                    f[0] = "G90 E0";
+                    ll.line = f;
+                    ll.tipe = "";
+                    lines.Add(ll);
                     }
-                    
-
-
-                }
                 string[] ln = new string[1];
-                ln[0] = line;
+              
                 LineType tipLine;
                 
                 
-                ln[0] = line;
+                ln[0] = _gcode.getString(); ;
                 tipLine.line = ln;
                 tipLine.tipe = "";
                 lines.Add(tipLine);
@@ -336,26 +353,29 @@ namespace GCodeToRobotAdapter
         {
             _prev = new gcode_variable();
             _gcode = new gcode_variable();
+            float prevE = 0;
             var _lines = new List<LineType>(); 
             foreach (var line in lines)
             {
-                if(!line.tipe.Contains("ArcStart")|| !line.tipe.Contains("ArcEnd") || !line.tipe.Contains("Sets"))
+                if(!line.tipe.Contains("ArcStart") && !line.tipe.Contains("ArcEnd") && !line.tipe.Contains("Sets"))
                 {
                     string[] line1 = new string[1];
                     foreach (var ln in line.line)
                     {
                         string[] a = ln.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                        if (_gcode.flags != null && _gcode.flags.Contains('e') && _gcode.command == "G" && _gcode.commandvalue == 1)
+                        if (_gcode.flags != null  && _gcode.command == "G" && _gcode.commandvalue == 1)
                             _prev = _gcode;
                         _gcode.command = "";
                         _gcode.flags = "";
+                        _gcode.e = 0;
+                        _gcode.feedrate = 0;
                         foreach (var com in a)
                         {
                             char element = com[0];
                             if (element == ';')
                                 break;
 
-                            float value = float.Parse(com.Substring(1), CultureInfo.InvariantCulture.NumberFormat);
+                            float value = float.Parse(com.Substring(1));
                             switch (element)
                             {
                                 case 'X':
@@ -387,7 +407,7 @@ namespace GCodeToRobotAdapter
                                     _gcode.flags += 'c';
                                     break;
                                 case 'F':
-                                    _gcode.feedrate = 500;
+                                    _gcode.feedrate = (int)Math.Round(value);
                                     _gcode.flags += 'f';
                                     break;
                                 case 'G':
@@ -400,24 +420,33 @@ namespace GCodeToRobotAdapter
                                     break;
                             }                            
                         }
-                        _current.x = 0;
-                        _current.y = 0;
-                        _current.z = 0;
-                        _current.e = 0;
-                        _current.feedrate = 0;
-                        _current.states = "p";
-                        _previous = _current;
-                        if (_current.feedrate != 0)
-                            PrevF = _current.feedrate;
-                        var Nline = "";
-                        float l = 0;
-                        if (_gcode.e > 0)
+                        //_current.x = 0;
+                        //_current.y = 0;
+                        //_current.z = 0;
+                        //_current.e = 0;
+                        //_current.feedrate = 0;
+                        //_current.states = "p";
+                        //_previous = _current;
+                        if (_gcode.command.Contains("G"))
                         {
-                            l = (float)Math.Sqrt(Math.Pow(_gcode.x - _prev.x, 2) + Math.Pow(_gcode.y - _prev.y, 2) + Math.Pow(_gcode.z - _prev.z, 2));
-                            _gcode.e = l / (PrevF * 1000) * _form.GetFeedKoef;
+                            if (_gcode.feedrate != 0)
+                                PrevF = _gcode.feedrate;
+                            var Nline = "";
+                            float l = 0;
+
+                            if (_gcode.e > 0)
+                            {
+                                l = (float)Math.Sqrt(Math.Pow(_gcode.x - _prev.x, 2) + Math.Pow(_gcode.y - _prev.y, 2) + Math.Pow(_gcode.z - _prev.z, 2));
+                                _gcode.e = (float)Math.Round(l / (PrevF / 1000) * _form.GetFeedKoef, 3) + prevE;
+                            }
+                            line1[0] = _gcode.getString();
+                            if (_gcode.flags.Contains("e"))
+                            {
+                                prevE = _gcode.e;
+                            }
+
                         }
-                        line1[0] = _gcode.getString();
-                        
+                       
 
                     }
                     LineType LT;

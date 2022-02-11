@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using System.Globalization;
 using System.Windows.Forms;
 
 namespace GCodeToRobotAdapter
@@ -12,6 +12,7 @@ namespace GCodeToRobotAdapter
         private GcodeReader GCode;
         public Form1()
         {
+            System.Threading.Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("en-US");
             InitializeComponent();
             GCode = new GcodeReader(this);
         }
@@ -32,12 +33,33 @@ namespace GCodeToRobotAdapter
             } 
         }
         public bool IsChecked { get =>  checkBox1.Checked; }
+        public int GetHSpeed {
+            get  
+            {
+                if (checkBox3.Checked)
+                    return int.Parse(textBox9.Text);
+                else
+                    return 0;
+            }
+        }
+
+        public int GetSpeed
+        {
+            get
+            {
+                if (checkBox3.Checked)
+                    return int.Parse(textBox7.Text);
+                else
+                    return 0;
+            }
+        }
+
         public float GetFeedKoef 
         {
             get 
             {
                 if (checkBox1.Checked)
-                    return float.Parse(textBox6.Text, System.Globalization.CultureInfo.InvariantCulture);
+                    return float.Parse(textBox6.Text);
                 else
                     return 1;
             }
@@ -86,6 +108,21 @@ namespace GCodeToRobotAdapter
             else
             {
                 textBox6.Enabled = false;
+            }
+        }
+
+        private void checkBox3_CheckedChanged(object sender, EventArgs e)
+        {
+
+            if (checkBox3.Checked)
+            {
+                textBox7.Enabled = true;
+                textBox9.Enabled = true;
+            }
+            else
+            {
+                textBox7.Enabled = false;
+                textBox9.Enabled = false;
             }
         }
     }

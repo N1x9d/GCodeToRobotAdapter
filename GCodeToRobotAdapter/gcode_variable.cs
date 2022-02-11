@@ -7,10 +7,10 @@
         public string command;
         public int commandvalue;
         public string flags;
-
+        
         public string getString()
         {
-            var res = command + command;
+            var res = command + commandvalue;
             if (flags.Contains("x"))
                 res += " X" + x;
             if (flags.Contains("y"))
@@ -19,9 +19,21 @@
                 res += " Z" + z;
             if (flags.Contains("e"))
                 res += " E" + e;
-            if(feedrate!=0)
+            if(feedrate!=0 && commandvalue==1)
                 res += " F" + feedrate;
             return res;
+        }
+
+        public void Nulification()
+        {
+            x = 0;
+            y = 0;
+            z =0;
+            e = 0;
+            a = 0;
+            c = 0;
+                b = 0;
+
         }
     }
 }
