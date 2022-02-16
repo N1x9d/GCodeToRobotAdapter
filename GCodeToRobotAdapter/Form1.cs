@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Windows.Forms;
 
 namespace GCodeToRobotAdapter
@@ -15,6 +16,45 @@ namespace GCodeToRobotAdapter
             System.Threading.Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("en-US");
             InitializeComponent();
             GCode = new GcodeReader(this);
+            try
+            {
+                bool ast,ae,set;
+                ast = false;
+                ae = false;
+                set = false;
+                StreamReader sr = new StreamReader("SaveData.dat");
+                while (!sr.EndOfStream)
+                {
+                    var line = sr.ReadLine();
+                    switch (line)
+                    {
+                        case "#AS":
+                            ast = !ast;
+                            break;
+                        case "#AE":
+                            ae = !ae;
+                            break;
+                        case "#ST":
+                            set = !set;
+                            break;
+                        default:
+                            if (ast)
+                                textBox4.Text += line+ System.Environment.NewLine;
+                            if (ae)
+                                textBox5.Text += line + System.Environment.NewLine;
+                            if (set)
+                                textBox3.Text += line + System.Environment.NewLine;
+                            break;
+                    }
+                    
+
+                }
+                sr.Close();
+            }
+            catch
+            {
+
+            }
         }
         public string[] ArcStartText { get { return addMarker(textBox4.Lines,";ArcStart");  } set { textBox4.Lines = value; } }
         public string[] ArcEndText { get { return addMarker(textBox5.Lines,";ArcEnd"); } set { textBox5.Lines = value; } }
@@ -124,6 +164,38 @@ namespace GCodeToRobotAdapter
                 textBox7.Enabled = false;
                 textBox9.Enabled = false;
             }
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            StreamWriter sw = new StreamWriter("SaveData.dat");
+            var lines = new List<string>();
+            lines.Clear();
+            lines.AddRange(textBox3.Lines);
+            sw.WriteLine("#ST");
+            foreach(var ln in lines)
+            {
+                sw.WriteLine(ln);
+            }
+            sw.WriteLine("#ST");
+            lines.Clear();
+            lines.AddRange(textBox4.Lines);
+            sw.WriteLine("#AS");
+            foreach (var ln in lines)
+            {
+                sw.WriteLine(ln);
+            }
+            sw.WriteLine("#AS");
+            lines.Clear();
+            lines.AddRange(textBox5.Lines);
+            sw.WriteLine("#AE");
+            foreach (var ln in lines)
+            {
+                sw.WriteLine(ln);
+            }
+            sw.WriteLine("#AE");
+            sw.Close();
+
         }
     }
 }
